@@ -1,7 +1,9 @@
 from pathlib import Path
-# Folder containing raw PDFs and processed text files
-PDF_DIR = Path(__file__).parent.parent / "data" / "pdfs"
-PROCESSED_DIR = Path(__file__).parent.parent / "data" / "processed"
+# Paths
+BASE_DIR = Path(__file__).parent.parent
+PDF_DIR = BASE_DIR / "data/pdfs"
+PROCESSED_DIR = BASE_DIR / "data/processed"
 
-# Ensure processed folder exists
-PROCESSED_DIR.mkdir(parents=True, exist_ok=True)
+# Chunking Settings
+CHUNK_SIZE = 500      # Maximum characters per chunk
+CHUNK_OVERLAP = 50    # Number of overlapping characters between chunks
