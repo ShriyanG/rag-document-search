@@ -31,10 +31,12 @@ def chunk_pdf_page_data(page_data, filename):
         page_chunks = chunk_text(text)
         for i, chunk in enumerate(page_chunks, start=1):
             all_chunks.append({
-                "filename": filename,
-                "page_number": page_number,
-                "chunk_id": i,
-                "text": chunk
+                "text": chunk,
+                "metadata": {
+                    "filename": filename,
+                    "page_number": page_number,
+                    "chunk_id": i
+                }
             })
     return all_chunks
 
