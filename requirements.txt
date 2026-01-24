@@ -2,3 +2,4 @@ pymupdf
 sentence-transformers
 numpy
 torch
+faiss-cpu
