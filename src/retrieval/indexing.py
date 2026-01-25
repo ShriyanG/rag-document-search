@@ -1,18 +1,17 @@
 from pathlib import Path
-from typing import List, Dict, Tuple
+from typing import List, Dict
 
 import faiss
 import numpy as np
 
-from config import EMBEDDINGS_DIR, PROCESSED_DIR
+from config import EMBEDDINGS_DIR, INDEX_PATH
 from utils import load_pickle
-
-INDEX_PATH = PROCESSED_DIR / "vector_index.index"
 
 
 def load_embeddings() -> List[Dict]:
     """Load embedded chunks from disk."""
     return load_pickle(EMBEDDINGS_DIR, "embeddings.pkl")
+
 
 def build_faiss_index(embedded_chunks: List[Dict]) -> faiss.IndexFlatL2:
     """
@@ -31,30 +30,14 @@ def save_index(index: faiss.IndexFlatL2, path: Path = INDEX_PATH) -> None:
     faiss.write_index(index, str(path))
 
 
-def load_index(path: Path = INDEX_PATH) -> faiss.IndexFlatL2:
+def load_faiss_index(path: Path = INDEX_PATH) -> faiss.IndexFlatL2:
     """Load FAISS index from disk."""
+    if not path.exists():
+        raise FileNotFoundError(f"FAISS index not found at {path}")
     return faiss.read_index(str(path))
 
 
-def query_index(
-    query_vector: np.ndarray,
-    index: faiss.IndexFlatL2,
-    embedded_chunks: List[Dict],
-    top_k: int = 5
-) -> List[Dict]:
-    """
-    Search FAISS index for the top_k most similar chunks.
-    Returns list of dicts with 'text' and 'metadata'.
-    """
-    query_vector = np.array([query_vector]).astype(np.float32)
-    distances, indices = index.search(query_vector, top_k)
-    results = []
-    for idx in indices[0]:
-        results.append(embedded_chunks[idx])
-    return results
-
-
-def run_vector_store_pipeline(top_k: int = 5) -> Tuple[faiss.IndexFlatL2, List[Dict]]:
+def run_vector_store_pipeline() -> tuple[faiss.IndexFlatL2, List[Dict]]:
     """
     Build index and return it along with the loaded embeddings.
     """

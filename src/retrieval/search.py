@@ -1,31 +1,8 @@
 from typing import List, Dict
 
 import numpy as np
-import faiss
 from sentence_transformers import SentenceTransformer
-
-from config import EMBEDDING_MODEL_NAME, EMBEDDINGS_DIR, PROCESSED_DIR
-from utils import load_pickle
-
-# Path to FAISS index
-INDEX_PATH = PROCESSED_DIR / "vector_index.index"
-
-
-
-def load_embeddings() -> List[Dict]:
-    """
-    Load embedded chunks (text + metadata + embeddings) from disk.
-    """
-    return load_pickle(EMBEDDINGS_DIR, "embeddings.pkl")
-
-
-def load_faiss_index() -> faiss.Index:
-    """
-    Load the FAISS index from disk.
-    """
-    if not INDEX_PATH.exists():
-        raise FileNotFoundError(f"FAISS index not found at {INDEX_PATH}")
-    return faiss.read_index(str(INDEX_PATH))
+import faiss
 
 
 def embed_query(query: str, model: SentenceTransformer) -> np.ndarray:
@@ -36,7 +13,7 @@ def embed_query(query: str, model: SentenceTransformer) -> np.ndarray:
         query,
         convert_to_numpy=True,
         normalize_embeddings=True
-    )   
+    )
     return query_vector
 
 
@@ -80,37 +57,3 @@ def search_index(
     if all_results and len(all_results) == 1:
         return all_results[0]
     return all_results
-
-
-
-def retrieve(
-    query: str,
-    top_k: int = 5
-) -> List[Dict]:
-    """
-    High-level retrieval function:
-    - Load embeddings
-    - Load FAISS index
-    - Embed query
-    - Search index
-    - Return ranked results
-    """
-    embeded_chunks = load_embeddings()
-    index = load_faiss_index()
-    model = SentenceTransformer(EMBEDDING_MODEL_NAME)
-    query_vector = embed_query(query, model)
-    results = search_index(query_vector, index, embeded_chunks, top_k)
-    return results
-
-
-if __name__ == "__main__":
-    # Simple test run
-    results = retrieve(
-        query="What is the main topic of this document?",
-        top_k=3
-    )
-
-    for r in results:
-        print("-" * 40)
-        print(r["metadata"])
-        print(r["text"][:300])
