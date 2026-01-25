@@ -1,4 +1,3 @@
-import pickle
 from pathlib import Path
 from typing import List, Dict, Tuple
 
@@ -6,15 +5,14 @@ import faiss
 import numpy as np
 
 from config import EMBEDDINGS_DIR, PROCESSED_DIR
+from utils import load_pickle
 
 INDEX_PATH = PROCESSED_DIR / "vector_index.index"
 
 
 def load_embeddings() -> List[Dict]:
-    """Load embeddings from disk."""
-    with open(EMBEDDINGS_DIR / "embeddings.pkl", "rb") as f:
-        return pickle.load(f)
-
+    """Load embedded chunks from disk."""
+    return load_pickle(EMBEDDINGS_DIR, "embeddings.pkl")
 
 def build_faiss_index(embedded_chunks: List[Dict]) -> faiss.IndexFlatL2:
     """

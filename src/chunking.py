@@ -1,21 +1,22 @@
 import pickle
 from pathlib import Path
-from config import PROCESSED_DIR, CHUNK_SIZE, CHUNK_OVERLAP  # import from config
+from config import PROCESSED_DIR, CHUNK_SIZE, CHUNK_OVERLAP 
+from utils import load_pickle, save_pickle
 
 # Helper Functions
 def chunk_text(text: str, chunk_size=CHUNK_SIZE, overlap=CHUNK_OVERLAP):
-    """
-    Split text into overlapping chunks.
-    """
+    if overlap >= chunk_size:
+        raise ValueError("CHUNK_OVERLAP must be smaller than CHUNK_SIZE")
+
     chunks = []
     start = 0
     text_length = len(text)
 
     while start < text_length:
         end = min(start + chunk_size, text_length)
-        chunk = text[start:end]
-        chunks.append(chunk)
-        start += chunk_size - overlap  # Move start with overlap
+        chunks.append(text[start:end])
+        start += chunk_size - overlap
+
     return chunks
 
 
@@ -55,18 +56,19 @@ def process_all_pickles():
     all_chunks = []
 
     for pkl_file in pickle_files:
-        with open(pkl_file, "rb") as f:
-            page_data = pickle.load(f)
+        page_data = load_pickle(directory=pickle_dir, filename=pkl_file.name)
         chunks = chunk_pdf_page_data(page_data, pkl_file.stem)
         all_chunks.extend(chunks)
 
     # Save all chunks to a single pickle in chunks folder
-    output_file = chunks_dir / "chunks.pkl"
-    with open(output_file, "wb") as f:
-        pickle.dump(all_chunks, f)
+    save_pickle(
+        directory=chunks_dir,
+        data=all_chunks,
+        filename="chunks.pkl"
+    )
 
     print(f"Total chunks created: {len(all_chunks)}")
-    print(f"Chunks saved to {output_file}")
+    print(f"Chunks saved to {chunks_dir / 'chunks.pkl'}")
 
 
 # Entry Point
