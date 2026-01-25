@@ -1,10 +1,9 @@
-# src/ingest.py
-
-import fitz  # PyMuPDF
-from pathlib import Path
-from config import PDF_DIR, PROCESSED_DIR
+import fitz
 import re
-import pickle
+from pathlib import Path
+
+from config import PDF_DIR, PROCESSED_DIR
+from utils import save_pickle
 
 # ----------------------------
 # Helper Functions
@@ -70,10 +69,12 @@ def process_all_pdfs(save_txt=True):
 
         if pages:
             # Save pickled object
-            pickle_file = pickle_dir / f"{pdf_file.stem}.pkl"
-            with open(pickle_file, "wb") as f:
-                pickle.dump(pages, f)
-            print(f"Pickled: {pickle_file.name}")
+            save_pickle(
+                directory=pickle_dir,
+                data=pages,
+                filename=f"{pdf_file.stem}.pkl"
+            )
+            print(f"Pickled: {pdf_file.stem}.pkl")
 
             # Optionally save human-readable text file
             if save_txt:
