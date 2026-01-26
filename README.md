@@ -56,9 +56,98 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
+### 3. Configure API Keys (Optional - For OpenAI Models)
+
+The system supports **two types of LLMs**:
+
+#### Local Models (No API Key Required)
+Default models like `google/flan-t5-small` run entirely locally and require no API key.
+
+#### OpenAI Models (API Key Required)
+To use GPT models (`gpt-3.5-turbo`, `gpt-4`, etc.), you'll need an OpenAI API key:
+
+1. **Get API Key**: Visit [OpenAI Platform](https://platform.openai.com/account/api-keys)
+2. **Set Environment Variable**:
+
+```bash
+export OPENAI_API_KEY="sk-your-api-key-here"
+```
+
+Or create a `.env` file (copy from `.env.example`):
+
+```bash
+cp .env.example .env
+# Edit .env and add your API key
+```
+
+To make it persistent across terminal sessions, add to your shell profile (`~/.zshrc`, `~/.bashrc`, etc.):
+
+```bash
+export OPENAI_API_KEY="sk-your-api-key-here"
+```
+
 ---
 
-## 🔧 Command-Line Interface (CLI)
+## 🧠 LLM Management
+
+The system supports **easy switching between local and OpenAI models** without code changes.
+
+### List Available Models
+
+```bash
+python src/main.py list-llms
+```
+
+Output:
+```
+📚 Supported LLM Models:
+
+  LOCAL:
+    - google/flan-t5-small
+    - google/flan-t5-base
+    - google/flan-t5-large
+    - google/flan-t5-xl
+    - gpt2
+    - meta-llama/Llama-2-7b
+    - meta-llama/Llama-2-13b
+
+  OPENAI:
+    - gpt-3.5-turbo
+    - gpt-4
+    - gpt-4-turbo
+```
+
+### Query with Different Models
+
+**Using Default (Local):**
+```bash
+python src/main.py query "What is attention?"
+```
+
+**Using Local Model:**
+```bash
+python src/main.py query "What is attention?" --llm google/flan-t5-base
+```
+
+**Using OpenAI Model (requires `OPENAI_API_KEY`):**
+```bash
+python src/main.py query "What is attention?" --llm gpt-4
+```
+
+### Programmatic LLM Switching
+
+```python
+from src.rag.pipeline import set_llm, run_rag_pipeline
+
+# Switch to GPT-4
+set_llm("gpt-4")
+answer = run_rag_pipeline("Your question")
+
+# Override at query time
+answer = run_rag_pipeline("Your question", llm_model="gpt-3.5-turbo")
+```
+
+---
 
 The system exposes a clean CLI for both **pipeline setup** and **query execution**.
 

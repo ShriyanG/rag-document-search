@@ -7,9 +7,12 @@ import argparse
 from pathlib import Path
 
 from rag import run_rag_pipeline
+from rag.pipeline import set_llm
+from components.llm import LLMFactory
 from components.data.pdf import process_all_pdfs
 from retrieval.embeddings import run_embedding_pipeline
 from retrieval.indexing import run_vector_store_pipeline
+from config.settings import DEFAULT_LLM_MODEL
 
 
 def setup_pipeline(skip_ingestion=False, skip_embedding=False, skip_indexing=False):
@@ -37,17 +40,33 @@ def setup_pipeline(skip_ingestion=False, skip_embedding=False, skip_indexing=Fal
         print(f"✓ Index built with {len(chunks)} vectors\n")
 
 
-def query_pipeline(query: str, top_k: int = 5):
+def query_pipeline(query: str, top_k: int = 5, llm_model: str = None):
     """
     Run a single query through the RAG pipeline.
     
     Args:
         query: The question to answer
         top_k: Number of documents to retrieve
+        llm_model: LLM model to use
     """
+    if llm_model:
+        print(f"Using LLM: {llm_model}\n")
+        set_llm(llm_model)
+    
     print(f"Query: {query}\n")
-    answer = run_rag_pipeline(query, top_k=top_k, max_tokens=250)
+    answer = run_rag_pipeline(query, top_k=top_k)
     print(f"Answer:\n{answer}\n")
+
+
+def list_llms():
+    """List all supported LLM models."""
+    models = LLMFactory.list_models()
+    print("\n📚 Supported LLM Models:\n")
+    for provider, model_list in models.items():
+        print(f"  {provider.upper()}:")
+        for model in model_list:
+            print(f"    - {model}")
+    print()
 
 
 def main():
@@ -66,7 +85,16 @@ def main():
     # Query command
     query_parser = subparsers.add_parser("query", help="Query the RAG pipeline")
     query_parser.add_argument("query", type=str, help="Question to answer")
-    query_parser.add_argument("--top-k", type=int, default=3, help="Number of documents to retrieve")
+    query_parser.add_argument("--top-k", type=int, default=5, help="Number of documents to retrieve")
+    query_parser.add_argument(
+        "--llm",
+        type=str,
+        default=None,
+        help=f"LLM model to use (default: {DEFAULT_LLM_MODEL})"
+    )
+    
+    # List models command
+    list_parser = subparsers.add_parser("list-llms", help="List all supported LLM models")
     
     args = parser.parse_args()
     
@@ -77,7 +105,9 @@ def main():
             skip_indexing=args.skip_indexing
         )
     elif args.command == "query":
-        query_pipeline(args.query, top_k=args.top_k)
+        query_pipeline(args.query, top_k=args.top_k, llm_model=args.llm)
+    elif args.command == "list-llms":
+        list_llms()
     else:
         parser.print_help()
 

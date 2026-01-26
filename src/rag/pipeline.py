@@ -1,26 +1,41 @@
-from typing import List, Dict
+from typing import List, Dict, Optional
 
 from retrieval import retrieve
-from components.llm import LocalLLM
-from config.llm_config import get_max_output_tokens, get_model_type, get_max_input_tokens
+from components.llm import LLMFactory
+from config.settings import DEFAULT_LLM_MODEL, DEFAULT_MAX_TOKENS
+from config.llm_config import get_max_output_tokens, get_max_input_tokens
 from .formatting import format_context
 from .prompts import create_prompt
 
 
 # ----------------------------
-# LLM Selection
+# Global LLM Instance
 # ----------------------------
 
-MODEL_NAME = "google/flan-t5-small"
-MAX_OUTPUT_TOKENS = get_max_output_tokens(MODEL_NAME)
-MAX_INPUT_TOKENS = get_max_input_tokens(MODEL_NAME)  # Add this
+# This will be set by set_llm() or default to configured model
+_llm = None
 
-llm = LocalLLM(
-    model_name=MODEL_NAME,
-    model_type=get_model_type(MODEL_NAME),
-    device="cpu",
-    max_length=MAX_OUTPUT_TOKENS
-)
+
+def set_llm(model_name: str = DEFAULT_LLM_MODEL, **kwargs):
+    """
+    Set the global LLM instance.
+    
+    Args:
+        model_name: Name of the LLM model
+        **kwargs: Additional arguments for LLM creation (api_key, device, etc)
+    """
+    global _llm
+    print(f"Loading LLM: {model_name}...")
+    _llm = LLMFactory.create(model_name, **kwargs)
+    print(f"✓ LLM loaded: {model_name}")
+
+
+def get_llm():
+    """Get the current LLM instance, initializing with default if needed."""
+    global _llm
+    if _llm is None:
+        set_llm(DEFAULT_LLM_MODEL)
+    return _llm
 
 
 # ----------------------------
@@ -46,9 +61,12 @@ def calculate_optimal_top_k(query: str, max_attempts: int = 10) -> int:
     Returns:
         Optimal top_k value that won't exceed token limit
     """
+    llm = get_llm()
+    max_input_tokens = get_max_input_tokens(llm.model_name)
+    
     # Reserve tokens for query + prompt structure + output
     reserved_tokens = estimate_tokens(query) + 100  
-    available_for_context = MAX_INPUT_TOKENS - reserved_tokens
+    available_for_context = max_input_tokens - reserved_tokens
     
     # Try progressively smaller top_k values
     for top_k in range(max_attempts, 0, -1):
@@ -63,8 +81,8 @@ def calculate_optimal_top_k(query: str, max_attempts: int = 10) -> int:
         # Check if this top_k fits
         total_tokens = reserved_tokens + context_tokens
         
-        if total_tokens <= MAX_INPUT_TOKENS:
-            print(f"📊 Optimal top_k: {top_k} (total tokens: {total_tokens}/{MAX_INPUT_TOKENS})")
+        if total_tokens <= max_input_tokens:
+            print(f"📊 Optimal top_k: {top_k} (total tokens: {total_tokens}/{max_input_tokens})")
             return top_k
     
     # If nothing fits, return 1
@@ -75,21 +93,37 @@ def calculate_optimal_top_k(query: str, max_attempts: int = 10) -> int:
 # RAG Pipeline
 # ----------------------------
 
-def run_rag_pipeline(query: str, top_k: int = None, max_tokens: int = None) -> str:
+def run_rag_pipeline(
+    query: str,
+    top_k: int = None,
+    max_tokens: int = None,
+    llm_model: Optional[str] = None
+) -> str:
     """
-    End-to-end RAG pipeline with dynamic token optimization.
+    End-to-end RAG pipeline with dynamic token optimization and LLM switching.
 
     Args:
         query: The question
         top_k: Number of documents to retrieve (None = auto-calculate)
         max_tokens: Max output tokens (None = use model default)
+        llm_model: Optional LLM model to use (switches LLM if provided)
+        
+    Returns:
+        Generated answer as string
     """
+    # Switch LLM if specified
+    if llm_model is not None:
+        set_llm(llm_model)
+    
+    llm = get_llm()
+    
     # Use model's default if not specified
     if max_tokens is None:
-        max_tokens = MAX_OUTPUT_TOKENS
+        max_tokens = get_max_output_tokens(llm.model_name)
     
-    # Dynamically calculate top_k
-    top_k = calculate_optimal_top_k(query)
+    # Dynamically calculate top_k if not specified
+    if top_k is None:
+        top_k = calculate_optimal_top_k(query)
     
     retrieved_chunks = retrieve(query=query, top_k=top_k)
     if not retrieved_chunks:
@@ -107,8 +141,9 @@ def run_rag_pipeline(query: str, top_k: int = None, max_tokens: int = None) -> s
 
 if __name__ == "__main__":
     test_query = "Explain the process of chunking and retrieval in the RAG pipeline."
-    answer = run_rag_pipeline(test_query)  # top_k auto-calculated!
+    answer = run_rag_pipeline(test_query)  # Uses default LLM with auto-calculated top_k
 
     print("-" * 80)
     print("Query:", test_query)
     print("Generated Answer:\n", answer)
+
