@@ -1,8 +1,10 @@
-# src/rag_pipeline.py
-
 from typing import List, Dict
-from components.llm import LocalLLM, OpenAILLM
+
 from retrieval import retrieve
+from components.llm import LocalLLM
+from .formatting import format_context
+from .prompts import create_prompt
+
 
 # ----------------------------
 # LLM Selection
@@ -15,25 +17,8 @@ llm = LocalLLM(
     device="cpu",
     max_length=256
 )
+# from components.llm import OpenAILLM
 # llm = OpenAILLM(model_name="gpt-4", api_key="YOUR_API_KEY")
-
-# ----------------------------
-# Helper Functions
-# ----------------------------
-
-def format_context(chunks: List[Dict]) -> str:
-    """
-    Prepare retrieved chunks for the LLM.
-    - Concatenate text from multiple chunks
-    - Include metadata like filename/page
-    """
-    context_parts = []
-    for chunk in chunks:
-        meta = chunk["metadata"]
-        context_parts.append(
-            f"[{meta['filename']} - Page {meta['page_number']}] {chunk['text']}"
-        )
-    return "\n\n".join(context_parts)
 
 
 # ----------------------------
@@ -51,7 +36,7 @@ def run_rag_pipeline(query: str, top_k: int = 5, max_tokens: int = 250) -> str:
     if not retrieved_chunks:
         return "No relevant documents found."
     context = format_context(retrieved_chunks)
-    prompt = f"Context:\n{context}\n\nQuestion: {query}\nAnswer:"
+    prompt = create_prompt(query, context)
     answer = llm.generate(prompt=prompt, max_length=max_tokens)
     return answer
 
@@ -63,7 +48,7 @@ def run_rag_pipeline(query: str, top_k: int = 5, max_tokens: int = 250) -> str:
 if __name__ == "__main__":
     test_query = "Explain the process of chunking and retrieval in the RAG pipeline."
     answer = run_rag_pipeline(test_query, top_k=10)
-    
+
     print("-" * 80)
     print("Query:", test_query)
     print("Generated Answer:\n", answer)

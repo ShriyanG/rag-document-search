@@ -4,6 +4,10 @@ __pycache__/
 .ipynb_checkpoints/
 
 # Folders
-data/
+/data/
 logs/
 venv/
+
+# Allow src/data to be tracked
+!src/data/
+!src/data/**

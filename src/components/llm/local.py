@@ -29,10 +29,8 @@ class LocalLLM:
         self.device = device
         self.max_length = max_length
 
-        # Load tokenizer
         self.tokenizer = AutoTokenizer.from_pretrained(model_name)
 
-        # Load model based on type
         if model_type == "causal":
             self.model = AutoModelForCausalLM.from_pretrained(
                 model_name, device_map=None, low_cpu_mem_usage=True

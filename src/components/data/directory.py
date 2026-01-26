@@ -1,35 +1,31 @@
-import pickle
+"""
+Data processing utilities for chunking and organizing data.
+"""
+
+from typing import List, Dict
 from pathlib import Path
-from config import PROCESSED_DIR, CHUNK_SIZE, CHUNK_OVERLAP 
-from utils import load_pickle, save_pickle
 
-# Helper Functions
-def chunk_text(text: str, chunk_size=CHUNK_SIZE, overlap=CHUNK_OVERLAP):
-    if overlap >= chunk_size:
-        raise ValueError("CHUNK_OVERLAP must be smaller than CHUNK_SIZE")
-
-    chunks = []
-    start = 0
-    text_length = len(text)
-
-    while start < text_length:
-        end = min(start + chunk_size, text_length)
-        chunks.append(text[start:end])
-        start += chunk_size - overlap
-
-    return chunks
+from config import PROCESSED_DIR, CHUNK_SIZE, CHUNK_OVERLAP
+from utils import load_pickle, save_pickle, chunk_text
 
 
-def chunk_pdf_page_data(page_data, filename):
+def chunk_pdf_page_data(page_data: List[Dict], filename: str) -> List[Dict]:
     """
     Convert page-level data into chunks with metadata.
+
+    Args:
+        page_data: List of dicts with page number and text
+        filename: Source filename for metadata
+
+    Returns:
+        List of chunked data with metadata
     """
     all_chunks = []
 
     for page in page_data:
         page_number = page["page_number"]
         text = page["text"]
-        page_chunks = chunk_text(text)
+        page_chunks = chunk_text(text, chunk_size=CHUNK_SIZE, overlap=CHUNK_OVERLAP)
         for i, chunk in enumerate(page_chunks, start=1):
             all_chunks.append({
                 "text": chunk,
@@ -42,15 +38,14 @@ def chunk_pdf_page_data(page_data, filename):
     return all_chunks
 
 
-# Main Processing Function
-def process_all_pickles():
+def process_all_pickles() -> None:
     """
     Load all pickled PDFs in PROCESSED_DIR/pickle/ and generate chunks.
     Save all chunks in PROCESSED_DIR/chunks/
     """
     pickle_dir = PROCESSED_DIR / "pickle"
     chunks_dir = PROCESSED_DIR / "chunks"
-    chunks_dir.mkdir(parents=True, exist_ok=True)  # Create folder if not exists
+    chunks_dir.mkdir(parents=True, exist_ok=True)
 
     pickle_files = list(pickle_dir.glob("*.pkl"))
     all_chunks = []
@@ -71,6 +66,5 @@ def process_all_pickles():
     print(f"Chunks saved to {chunks_dir / 'chunks.pkl'}")
 
 
-# Entry Point
 if __name__ == "__main__":
     process_all_pickles()
