@@ -122,8 +122,7 @@ def run_rag_pipeline(
         max_tokens = get_max_output_tokens(llm.model_name)
     
     # Dynamically calculate top_k if not specified
-    if top_k is None:
-        top_k = calculate_optimal_top_k(query)
+    top_k = calculate_optimal_top_k(query)
     
     retrieved_chunks = retrieve(query=query, top_k=top_k)
     if not retrieved_chunks:

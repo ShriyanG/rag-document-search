@@ -26,9 +26,8 @@ SUPPORTED_LOCAL_MODELS = [
     "google/flan-t5-small",
     "google/flan-t5-base",
     "google/flan-t5-large",
-    "google/flan-t5-xl",
-    "gpt2",
 ]
+
 
 SUPPORTED_OPENAI_MODELS = [
     "gpt-3.5-turbo",
