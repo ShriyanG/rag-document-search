@@ -66,7 +66,7 @@ def main():
     # Query command
     query_parser = subparsers.add_parser("query", help="Query the RAG pipeline")
     query_parser.add_argument("query", type=str, help="Question to answer")
-    query_parser.add_argument("--top-k", type=int, default=5, help="Number of documents to retrieve")
+    query_parser.add_argument("--top-k", type=int, default=3, help="Number of documents to retrieve")
     
     args = parser.parse_args()
     

@@ -3,7 +3,9 @@ from transformers import (
     AutoModelForCausalLM,
     AutoModelForSeq2SeqLM,
 )
+from config.llm_config import get_max_input_tokens, get_model_type
 import torch
+
 class LocalLLM:
     """
     Wrapper for local LLMs, supporting:
@@ -20,13 +22,20 @@ class LocalLLM:
     def __init__(
         self,
         model_name: str,
-        model_type: str = "causal",
+        model_type: str = None,  # Can be None - will fetch from config
         device: str = "cpu",
-        max_length: int = 512,
+        max_length: int = None,  # Can be None - will fetch from config
     ):
         self.model_name = model_name
-        self.model_type = model_type
         self.device = device
+        
+        # Get from config if not provided
+        if model_type is None:
+            model_type = get_model_type(model_name)
+        if max_length is None:
+            max_length = get_max_input_tokens(model_name)
+        
+        self.model_type = model_type
         self.max_length = max_length
 
         self.tokenizer = AutoTokenizer.from_pretrained(model_name)
@@ -44,6 +53,14 @@ class LocalLLM:
 
         self.model.to(self.device)
         self.model.eval()
+
+    def get_max_tokens(self) -> int:
+        """Return max tokens for this model."""
+        return self.max_length
+
+    def get_model_type(self) -> str:
+        """Return model type."""
+        return self.model_type
 
     def generate(self, prompt: str, **generation_kwargs) -> str:
         """
