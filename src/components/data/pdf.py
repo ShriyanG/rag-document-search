@@ -5,6 +5,7 @@ from typing import List, Dict
 from config import PDF_DIR, PROCESSED_DIR
 from utils import save_pickle, clean_text
 from .base import BaseDataSource
+from components.storage.supabase import SupabaseStorage
 
 
 class PDFDataSource(BaseDataSource):
@@ -20,6 +21,7 @@ class PDFDataSource(BaseDataSource):
         self.pdf_dir = pdf_dir
         self.pickle_dir = PROCESSED_DIR / "pickle"
         self.txt_dir = PROCESSED_DIR / "txt"
+        self.supabase = SupabaseStorage(bucket_name="llm_storage")
 
     def extract_text_with_metadata(self, pdf_path: Path) -> List[Dict]:
         """
