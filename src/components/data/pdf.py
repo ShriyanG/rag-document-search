@@ -21,7 +21,7 @@ class PDFDataSource(BaseDataSource):
         self.pdf_dir = Path(pdf_dir)
         self.pickle_dir = PROCESSED_DIR / "pickle"
         self.txt_dir = PROCESSED_DIR / "txt"
-        self.supabase = SupabaseStorage(bucket_name="llm_storage")
+        self.supabase = SupabaseStorage()
 
     def sync(self, prefix: str = "", overwrite: bool = True) -> None:
         """

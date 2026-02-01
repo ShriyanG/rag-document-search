@@ -17,7 +17,7 @@ class SupabaseStorage(BaseStorage):
     Supabase storage backend.
     """
 
-    def __init__(self, bucket_name: str):
+    def __init__(self):
         """Initialize Supabase storage client."""
         try:
             from supabase import create_client
@@ -28,11 +28,11 @@ class SupabaseStorage(BaseStorage):
 
         self.supabase_url = os.getenv("SUPABASE_URL")
         self.supabase_key = os.getenv("SUPABASE_KEY")
+        self.supabase_bucket = os.getenv("SUPABASE_BUCKET")
 
         if not self.supabase_url or not self.supabase_key:
             raise ValueError("Supabase credentials missing. Set SUPABASE_URL and SUPABASE_KEY in .env.")
 
-        self.bucket_name = bucket_name
         self.client = create_client(self.supabase_url, self.supabase_key)
 
         try:
@@ -43,7 +43,7 @@ class SupabaseStorage(BaseStorage):
     def upload(self, local_path: Path, remote_path: str) -> None:
         """Upload a file to Supabase bucket."""
         with open(local_path, "rb") as f:
-            self.client.storage.from_(self.bucket_name).upload(
+            self.client.storage.from_(self.supabase_bucket).upload(
                 file=f,
                 path=remote_path,
                 file_options={"cache-control": "3600"}
@@ -72,7 +72,7 @@ class SupabaseStorage(BaseStorage):
             
             local_path = Path(local_path)
             try:
-                data = self.client.storage.from_(self.bucket_name).download(remote_path)
+                data = self.client.storage.from_(self.supabase_bucket).download(remote_path)
                 local_path.parent.mkdir(parents=True, exist_ok=True)
                 local_path.write_bytes(data)
             except Exception as e:
@@ -124,9 +124,9 @@ class SupabaseStorage(BaseStorage):
     def get_url(self, remote_path: str) -> str:
         """Get public URL for a file in bucket."""
         try:
-            return self.client.storage.from_(self.bucket_name).get_public_url(remote_path)
+            return self.client.storage.from_(self.supabase_bucket).get_public_url(remote_path)
         except Exception:
-            return f"{self.supabase_url}/storage/v1/object/public/{self.bucket_name}/{remote_path}"
+            return f"{self.supabase_url}/storage/v1/object/public/{self.supabase_bucket}/{remote_path}"
 
     def __repr__(self) -> str:
-        return f"SupabaseStorage(bucket='{self.bucket_name}')"
+        return f"SupabaseStorage(bucket='{self.supabase_bucket}')"
