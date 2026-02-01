@@ -10,3 +10,5 @@ protobuf
 huggingface-hub
 sentencepiece
 accelerate
+supabase
+python-dotenv

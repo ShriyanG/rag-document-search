@@ -56,26 +56,31 @@ class LocalStorage(BaseStorage):
         shutil.copy2(src, local_path)
         print(f"✓ Downloaded: {remote_path}")
 
+    def load(self, remote_path: str) -> bytes:
+        """
+        Load a file from storage and return raw bytes.
+        """
+        file_path = self.base_dir / remote_path
+        if not file_path.exists():
+            raise FileNotFoundError(f"File not found: {remote_path}")
+        return file_path.read_bytes()
+
+
     def list_files(self, prefix: str = "") -> List[str]:
         """
         List all files in storage with optional prefix.
-        
-        Args:
-            prefix: Optional prefix to filter by (e.g., 'chunks')
-            
-        Returns:
-            List of relative paths to files
         """
-        path = self.base_dir / prefix if prefix else self.base_dir
-        if not path.exists():
-            return []
-        
         files = []
-        for file_path in path.rglob("*"):
-            if file_path.is_file():
-                relative = file_path.relative_to(self.base_dir)
-                files.append(str(relative))
+
+        for file_path in self.base_dir.rglob("*"):
+            if not file_path.is_file():
+                continue
+            relative = str(file_path.relative_to(self.base_dir))
+            if prefix and not relative.startswith(prefix):
+                continue
+            files.append(relative)
         return files
+
 
     def delete(self, remote_path: str) -> None:
         """

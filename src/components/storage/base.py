@@ -93,5 +93,9 @@ class BaseStorage(ABC):
         """
         pass
 
+    # @abstractmethod
+    # def load(self, remote_path: str) -> bytes:
+    #     pass
+
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}()"
