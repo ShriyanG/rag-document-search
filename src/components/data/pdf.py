@@ -23,6 +23,23 @@ class PDFDataSource(BaseDataSource):
         self.txt_dir = PROCESSED_DIR / "txt"
         self.supabase = SupabaseStorage(bucket_name="llm_storage")
 
+    def sync(self, prefix: str = "", overwrite: bool = True) -> None:
+        """
+        Sync PDFs from cloud storage to local directory.
+        
+        Args:
+            prefix: Optional prefix to filter files in bucket
+            overwrite: Whether to overwrite existing local files
+        """
+        print("Syncing with cloud storage...")
+        self.pdf_dir.mkdir(parents=True, exist_ok=True)
+        self.supabase.download(
+            remote_path=None,
+            local_path=self.pdf_dir,
+            prefix=prefix,
+            overwrite=overwrite
+        )
+
     def extract_text_with_metadata(self, pdf_path: Path) -> List[Dict]:
         """
         Extract text from each page of a PDF and clean it.
@@ -56,22 +73,12 @@ class PDFDataSource(BaseDataSource):
     def process(self, save_txt: bool = True) -> None:
         """
         Process all PDFs in pdf_dir:
-        - Downloads PDFs from cloud if directory is empty
         - Save pickled page-level metadata in PROCESSED_DIR/pickle/
         - Optionally save human-readable .txt in PROCESSED_DIR/txt/
+        
+        Note: Call sync() before process() to download latest files from cloud.
         """
-        # Download from cloud if no PDFs exist locally
         pdf_files = list(self.pdf_dir.glob("*.pdf"))
-        if not pdf_files:
-            print("No local PDFs found. Downloading from cloud...")
-            self.pdf_dir.mkdir(parents=True, exist_ok=True)
-            self.supabase.download(
-                remote_path=None,
-                local_path=self.pdf_dir,
-                prefix="",
-                overwrite=True
-            )
-            pdf_files = list(self.pdf_dir.glob("*.pdf"))
         
         if not pdf_files:
             print("No PDF files found to process")
@@ -110,6 +117,7 @@ class PDFDataSource(BaseDataSource):
 def process_all_pdfs(save_txt: bool = True) -> None:
     """Convenience function to process all PDFs."""
     pdf_source = PDFDataSource()
+    pdf_source.sync()  # Sync with cloud first
     pdf_source.process(save_txt=save_txt)
 
 
