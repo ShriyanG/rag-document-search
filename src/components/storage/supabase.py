@@ -9,7 +9,7 @@ from typing import List
 import os
 from dotenv import load_dotenv
 from .base import BaseStorage
-from config import ENV_PATH  # <- use config for .env path
+from config import ENV_PATH
 
 
 class SupabaseStorage(BaseStorage):
@@ -24,10 +24,8 @@ class SupabaseStorage(BaseStorage):
         except ImportError:
             raise ImportError("supabase-py not installed. Install with `pip install supabase`.")
 
-        # Load .env from config
         load_dotenv(dotenv_path=ENV_PATH)
 
-        # Access only the variables we care about
         self.supabase_url = os.getenv("SUPABASE_URL")
         self.supabase_key = os.getenv("SUPABASE_KEY")
 
@@ -37,7 +35,6 @@ class SupabaseStorage(BaseStorage):
         self.bucket_name = bucket_name
         self.client = create_client(self.supabase_url, self.supabase_key)
 
-        # Test connection
         try:
             self.client.storage.list_buckets()
         except Exception as e:
@@ -51,7 +48,7 @@ class SupabaseStorage(BaseStorage):
                 path=remote_path,
                 file_options={"cache-control": "3600"}
             )
-        print(f"✓ Uploaded to Supabase: {remote_path}")
+
     def download(
         self, 
         remote_path: str | None = None, 
@@ -68,104 +65,39 @@ class SupabaseStorage(BaseStorage):
             prefix: Filter files by prefix (only used when downloading all).
             overwrite: Whether to overwrite existing files (only used when downloading all).
         """
-        print(f"\n=== DOWNLOAD CALLED ===")
-        print(f"remote_path: {remote_path}")
-        print(f"local_path: {local_path}")
-        print(f"prefix: '{prefix}'")
-        print(f"overwrite: {overwrite}")
-        
         # Single file download
         if remote_path is not None:
-            print(f"→ SINGLE FILE MODE")
             if local_path is None:
                 raise ValueError("local_path required when downloading a specific file")
             
             local_path = Path(local_path)
-            print(f"  Target: {local_path.absolute()}")
-            
             try:
-                print(f"  Calling Supabase API...")
                 data = self.client.storage.from_(self.bucket_name).download(remote_path)
-                print(f"  ✓ Got data: {len(data)} bytes")
-                
-                print(f"  Creating parent dir: {local_path.parent.absolute()}")
                 local_path.parent.mkdir(parents=True, exist_ok=True)
-                
-                print(f"  Writing to disk...")
                 local_path.write_bytes(data)
-                
-                print(f"  Checking if file exists: {local_path.exists()}")
-                if local_path.exists():
-                    print(f"  ✓ File size on disk: {local_path.stat().st_size} bytes")
-                else:
-                    print(f"  ✗ FILE DOES NOT EXIST AFTER WRITE!")
-                    
             except Exception as e:
-                print(f"  ✗ ERROR: {type(e).__name__}: {e}")
-                import traceback
-                traceback.print_exc()
                 raise FileNotFoundError(f"File not found in Supabase: {remote_path}") from e
         
         # Download all files
         else:
-            print(f"→ DOWNLOAD ALL MODE")
             if local_path is None:
                 raise ValueError("local_path (directory) required when downloading all files")
             
             local_dir = Path(local_path)
-            print(f"  Local dir: {local_dir.absolute()}")
             local_dir.mkdir(parents=True, exist_ok=True)
-            print(f"  Dir exists: {local_dir.exists()}")
             
             files = self.list_files(prefix=prefix)
-            print(f"  Found {len(files)} files: {files}")
-            
             if not files:
-                print(f"  No files to download")
                 return
             
-            for i, file_name in enumerate(files, 1):
-                print(f"\n  [{i}/{len(files)}] Processing: {file_name}")
+            for file_name in files:
                 file_local_path = local_dir / file_name
-                print(f"       Target path: {file_local_path.absolute()}")
                 
                 if file_local_path.exists() and not overwrite:
-                    print(f"       Skipped (exists)")
                     continue
                 
                 # Call the single-file version
                 self.download(remote_path=file_name, local_path=file_local_path)
-    # def download(self, remote_path: str, local_path: Path) -> None:
-    #     """Download a file from Supabase bucket."""
-    #     try:
-    #         data = self.client.storage.from_(self.bucket_name).download(remote_path)
-    #         local_path.parent.mkdir(parents=True, exist_ok=True)
-    #         local_path.write_bytes(data)
-    #         print(f"✓ Downloaded from Supabase: {remote_path}")
-    #     except Exception:
-    #         raise FileNotFoundError(f"File not found in Supabase: {remote_path}")
-            
-    # def download_all(self, local_dir: Path, prefix: str = "", overwrite: bool = True) -> None:
-    #     """
-    #     Download all files from the bucket to a local directory.
-
-    #     Args:
-    #         local_dir: Local directory to save files
-    #         prefix: Optional prefix to filter files in the bucket
-    #         overwrite: Whether to overwrite existing files
-    #     """
-    #     local_dir = Path(local_dir)
-    #     local_dir.mkdir(parents=True, exist_ok=True)
-
-    #     files = self.list_files(prefix=prefix)
-    #     if not files:
-    #         return
-
-    #     for file_name in files:
-    #         local_path = local_dir / Path(file_name).name
-    #         if local_path.exists() and not overwrite:
-    #             continue
-    #         self.download(file_name, local_path)
 
     def list_files(self, prefix: str = "") -> List[str]:
         """List all files in bucket, optionally filtered by prefix."""
@@ -175,17 +107,15 @@ class SupabaseStorage(BaseStorage):
             if prefix:
                 files = [f for f in files if f.startswith(prefix)]
             return files
-        except Exception as e:
-            print(f"Warning: Could not list files (prefix='{prefix}'): {e}")
+        except Exception:
             return []
 
     def delete(self, remote_path: str) -> None:
         """Delete a file from Supabase bucket."""
         try:
             self.client.storage.from_(self.bucket_name).remove([remote_path])
-            print(f"✓ Deleted from Supabase: {remote_path}")
-        except Exception as e:
-            print(f"Warning: Could not delete {remote_path}: {e}")
+        except Exception:
+            pass
 
     def exists(self, remote_path: str) -> bool:
         """Check if a file exists in bucket."""
