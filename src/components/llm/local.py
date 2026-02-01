@@ -3,8 +3,11 @@ from transformers import (
     AutoModelForCausalLM,
     AutoModelForSeq2SeqLM,
 )
+from config.llm_config import get_max_input_tokens, get_model_type
 import torch
-class LocalLLM:
+from .base import BaseLLM
+
+class LocalLLM(BaseLLM):
     """
     Wrapper for local LLMs, supporting:
       - Causal (decoder-only) models like GPT
@@ -20,13 +23,20 @@ class LocalLLM:
     def __init__(
         self,
         model_name: str,
-        model_type: str = "causal",
+        model_type: str = None,
         device: str = "cpu",
-        max_length: int = 512,
+        max_length: int = None,
     ):
         self.model_name = model_name
-        self.model_type = model_type
         self.device = device
+        
+        # Get from config if not provided
+        if model_type is None:
+            model_type = get_model_type(model_name)
+        if max_length is None:
+            max_length = get_max_input_tokens(model_name)
+        
+        self._model_type = model_type
         self.max_length = max_length
 
         self.tokenizer = AutoTokenizer.from_pretrained(model_name)
@@ -45,16 +55,33 @@ class LocalLLM:
         self.model.to(self.device)
         self.model.eval()
 
-    def generate(self, prompt: str, **generation_kwargs) -> str:
+    def get_max_tokens(self) -> int:
+        """Return max tokens for this model."""
+        return self.max_length
+
+    def get_model_type(self) -> str:
+        """Return model type."""
+        return self._model_type
+
+    def generate(self, prompt: str, max_length: int = None, **generation_kwargs) -> str:
         """
         Generate text from a prompt.
 
-        Returns the decoded string output.
+        Args:
+            prompt: Input prompt
+            max_length: Max tokens (uses model default if None)
+            **generation_kwargs: Additional generation parameters
+
+        Returns:
+            Generated text as string
         """
+        if max_length is None:
+            max_length = self.max_length
+            
         inputs = self.tokenizer(prompt, return_tensors="pt").to(self.device)
 
         # Merge default generation settings with any overrides
-        default_kwargs = {"max_length": self.max_length, "do_sample": True}
+        default_kwargs = {"max_length": max_length, "do_sample": True}
         default_kwargs.update(generation_kwargs)
 
         with torch.no_grad():
@@ -62,3 +89,4 @@ class LocalLLM:
 
         decoded = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
         return decoded
+
