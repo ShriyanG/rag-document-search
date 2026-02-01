@@ -39,3 +39,8 @@ SUPPORTED_OPENAI_MODELS = [
 # Generation Settings
 # ----------------------------
 DEFAULT_MAX_TOKENS = 250  # Default max tokens for LLM generation
+# ----------------------------
+# Storage Settings
+# ----------------------------
+DEFAULT_STORAGE_BACKEND = "local"  # 'local' for testing, 'supabase' for production
+STORAGE_BUCKET_NAME = "rag-documents"  # Supabase bucket name
