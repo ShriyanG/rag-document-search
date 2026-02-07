@@ -13,6 +13,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy the project
 COPY . .
 
+# Add src to Python path so imports work correctly
+ENV PYTHONPATH=/app/src:$PYTHONPATH
+
 # Expose the port FastAPI will run on
 EXPOSE 8000
 
