@@ -81,7 +81,12 @@ class LocalLLM(BaseLLM):
         inputs = self.tokenizer(prompt, return_tensors="pt").to(self.device)
 
         # Merge default generation settings with any overrides
-        default_kwargs = {"max_length": max_length, "do_sample": True}
+        # Using do_sample=False for deterministic/consistent outputs
+        default_kwargs = {
+            "max_length": max_length, 
+            "do_sample": False,  # Greedy decoding for consistent results
+            "num_beams": 1,      # Single beam for faster generation
+        }
         default_kwargs.update(generation_kwargs)
 
         with torch.no_grad():
