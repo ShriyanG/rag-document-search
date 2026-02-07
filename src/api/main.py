@@ -97,7 +97,24 @@ def check_and_run_setup():
 async def startup_event():
     """Run setup check on startup"""
     print("🚀 Starting RAG Document Search API...")
-    check_and_run_setup()
+    success = check_and_run_setup()
+    
+    if success and _setup_complete:
+        print("🔥 Warming up: preloading models for fast queries...")
+        try:
+            # Preload embedding model, FAISS index, and LLM
+            from retrieval import retrieve
+            from rag.pipeline import get_llm
+            
+            # This will cache the embedding model and FAISS index
+            _ = retrieve(query="warmup", top_k=1)
+            
+            # This will cache the LLM
+            _ = get_llm()
+            
+            print("✅ Warmup complete! Ready for fast queries.")
+        except Exception as e:
+            print(f"⚠️ Warmup failed: {e}")
 
 
 class QueryRequest(BaseModel):
