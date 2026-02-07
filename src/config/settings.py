@@ -32,7 +32,6 @@ SUPPORTED_LOCAL_MODELS = [
 SUPPORTED_OPENAI_MODELS = [
     "gpt-3.5-turbo",
     "gpt-4",
-    "gpt-4-turbo",
 ]
 
 # ----------------------------

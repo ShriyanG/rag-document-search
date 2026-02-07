@@ -52,12 +52,12 @@ with st.sidebar:
             "google/flan-t5-small",
             "google/flan-t5-base",
             "google/flan-t5-large",
-            "gpt-3.5-turbo",
-            "gpt-4",
         ],
         index=0,
-        help="Choose the language model for generation"
+        help="Local Hugging Face models for text generation"
     )
+    
+    st.caption("💡 **OpenAI models** (GPT-3.5, GPT-4) are supported but require `OPENAI_API_KEY` in .env")
     
     st.divider()
     st.markdown("### About")
