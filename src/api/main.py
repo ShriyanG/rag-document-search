@@ -164,7 +164,18 @@ def health_check():
     return {
         "status": "healthy",
         "service": "rag-document-search",
-        "default_model": DEFAULT_LLM_MODEL
+        "default_model": DEFAULT_LLM_MODEL,
+        "setup_complete": _setup_complete
+    }
+
+
+@app.get("/status")
+def get_status():
+    """Get system status and readiness"""
+    return {
+        "ready": _setup_complete,
+        "setup_complete": _setup_complete,
+        "message": "System ready for queries" if _setup_complete else "System initializing... Please wait."
     }
 
 

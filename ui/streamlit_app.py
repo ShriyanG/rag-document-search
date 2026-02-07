@@ -1,6 +1,7 @@
 import os
 import requests
 import streamlit as st
+import time
 
 # Support both local development and Docker deployment
 API_URL = os.getenv("API_URL", "http://localhost:8000")
@@ -10,8 +11,33 @@ st.set_page_config(
     layout="centered",
 )
 
+
+def check_backend_status():
+    """Check if backend is ready for queries"""
+    try:
+        response = requests.get(f"{API_URL}/status", timeout=5)
+        if response.status_code == 200:
+            data = response.json()
+            return data.get("ready", False), data.get("message", "")
+        return False, "Status check failed"
+    except requests.exceptions.RequestException:
+        return False, "Cannot connect to backend"
+
+
+# Check backend status
+backend_ready, status_message = check_backend_status()
+
 st.title("📄 RAG Document Search")
 st.caption("Query documents stored in Supabase using a Retrieval-Augmented Generation pipeline")
+
+# Display status indicator
+if backend_ready:
+    st.success("🟢 System Ready")
+else:
+    st.warning(f"🟡 {status_message}")
+    st.info("⏳ The system is initializing (downloading models, processing documents, building index). This may take a few minutes on first startup. The page will automatically refresh when ready.")
+    time.sleep(5)
+    st.rerun()
 
 st.divider()
 
@@ -58,7 +84,7 @@ top_k = st.slider(
     value=5,
 )
 
-if st.button("🔍 Run Query", type="primary"):
+if st.button("🔍 Run Query", type="primary", disabled=not backend_ready):
     if not query.strip():
         st.warning("Please enter a question.")
     else:
